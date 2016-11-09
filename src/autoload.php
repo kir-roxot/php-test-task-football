@@ -5,3 +5,4 @@ spl_autoload_register(function ($class) {
 });
 
 include "services/PageGenerator.php";
+include "constant.php";
