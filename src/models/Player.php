@@ -15,7 +15,7 @@ class Player
     public function __construct($number, $name)
     {
         $this->number = $number;
-        $this->fullname = $name;
+        $this->name = $name;
     }
 
     public function fulltime()
