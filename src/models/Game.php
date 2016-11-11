@@ -25,21 +25,29 @@ class Game
     /**
      * @var Info[] $info
      */
-    public $info;
+    public $info = [];
 
     /**
      * Game constructor.
      * @param $country
      * @param $city
      * @param $stadium
-     * @param $teams
+     * @param array $teams
      */
-    public function __construct($country, $city, $stadium, $teams)
+    public function __construct($country, $city, $stadium, array $teams)
     {
         $this->country = $country;
         $this->city = $city;
         $this->stadium = $stadium;
         $this->teams = $teams;
+    }
+
+    /**
+     * @param array $info
+     */
+    public function setInfo(array $info)
+    {
+        $this->info = $info;
     }
 }
 

@@ -43,19 +43,21 @@ class Player
     public $redCards = 0;
 
     /**
-     * @var bool $isReserve
+     * @var bool $isStarted
      */
-    public $isReserve = true;
+    public $isStarted = false;
 
     /**
      * Player constructor.
      * @param $number
      * @param $name
+     * @param $isStarted
      */
-    public function __construct($number, $name)
+    public function __construct($number, $name, $isStarted)
     {
         $this->number = $number;
         $this->name = $name;
+        $this->isStarted = $isStarted;
     }
 
     public function fulltime()
@@ -68,30 +70,41 @@ class Player
      */
     public function setEndTime($endTime)
     {
-        $this->endTime = $this->endTime && !$this->isReserve ? $endTime : $this->endTime;
+        if ($this->startTime === 0 && $this->endTime === 0 && $this->isStarted || $this->startTime > 0) {
+            $this->endTime = $endTime;
+        }
     }
 
-    /**
-     * @param int $time
-     */
-    public function setYellowCards($time)
+    public function increaseYellowCards()
     {
         if ($this->yellowCards + 1 > 2) {
             return;
         }
 
-        $this->yellowCards += 1;
-        if ($this->yellowCards === 2) {
-            $this->setRedCards($time);
-        }
+        $this->yellowCards++;
     }
 
-    /**
-     * @param int $time
-     */
-    public function setRedCards($time)
+    public function setRedCard()
     {
         $this->redCards = 1;
-        $this->setEndTime($time);
+    }
+
+    public function increaseGoal()
+    {
+        $this->goals++;
+    }
+
+    public function increaseAssists()
+    {
+        $this->assists++;
+    }
+
+    public function setReplacement($type, $time)
+    {
+        if ($type === PLAYER_IN) {
+            $this->startTime = $time;
+        } else if ($type === PLAYER_OUT) {
+            $this->endTime = $time;
+        }
     }
 }

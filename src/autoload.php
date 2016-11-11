@@ -1,8 +1,8 @@
 <?php
 
 spl_autoload_register(function ($class) {
-    include "models/" . $class . ".php";
+    require_once "models/" . $class . ".php";
 });
 
-include "services/PageGenerator.php";
-include "constant.php";
+require_once "PageGenerator.php";
+require_once "constant.php";

@@ -1,0 +1,46 @@
+body {
+    padding-top: 50px;
+}
+
+.starter-template {
+    padding: 40px 15px;
+    text-align: center;
+}
+
+.navbar-company {
+    color: #fff;
+    float: left;
+    height: 50px;
+    padding: 15px 15px;
+    font-size: 18px;
+    line-height: 20px;
+}
+
+.scores {
+    height: 200px;
+    line-height: 200px;
+}
+
+.team {
+    margin: 0 20px;
+    font-size: 30px;
+}
+
+.goals {
+    margin: 0 20px;
+    font-size: 50px;
+}
+
+.big-colon {
+    font-size: 50px;
+}
+
+.tab-content .table {
+    text-align: left;
+}
+
+.title-team {
+    display: block;
+    font-size: 20px;
+    margin: 20px auto;
+}
