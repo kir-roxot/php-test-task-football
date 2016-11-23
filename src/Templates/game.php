@@ -1,4 +1,7 @@
 <?php
+
+use Roxot\Models\Game;
+
 /**
  * @var Game $game
  */

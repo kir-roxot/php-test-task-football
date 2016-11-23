@@ -17,80 +17,108 @@ class PageGenerator
     private $scanPath;
     private $resultPath;
 
-    public function __construct($scanPath, $resultPath)
-    {
+    public function __construct($scanPath, $resultPath){
         $this->scanPath = $scanPath;
         $this->resultPath = $resultPath;
     }
 
     public function generate()
     {
-        $filesNames = $this->scan();
+        $filesPaths = $this->getFilesPaths();
 
-        foreach ($filesNames as $fileName) {
-            $file = file_get_contents($this->scanPath . "/" . $fileName);
-            $obj = json_decode($file);
-
-            $game = $this->createGame($obj);
-            if (is_null($game)) {
-                continue;
-            }
-
-            $this->addInfo($game, $obj);
-            $this->savePage($fileName, $game);
+        foreach ($filesPaths as $filePath) {
+            $gameData = $this->getGameInfoByFile($filePath);
+            $game = $this->createGame($gameData);
+            $this->addInfo($game, $gameData);
+            $this->savePage($filePath, $game);
         }
     }
 
     /**
-     * @return array $filesNames
+     * @return array $filesPaths
      * @throws \Exception
      */
-    private function scan()
+    private function getFilesPaths()
     {
-        $filesNames = scandir($this->scanPath);
-        $filesNames = array_diff($filesNames, array(".", ".."));
-        if (!count($filesNames)) {
-            throw new \Exception("Files not found.");
+        $filesPaths = glob($this->scanPath . "*.json");
+        if (!count($filesPaths)) {
+            throw new \Exception(sprintf('The files not found in the directory: %s', $this->scanPath));
         }
 
-        return $filesNames;
+        return $filesPaths;
     }
 
     /**
-     * @param $fileName
+     * @param $filePath
+     * @return array
+     * @throws \Exception
+     */
+    private function getGameInfoByFile($filePath)
+    {
+        $file = file_get_contents($filePath);
+        $gameInfo = json_decode($file, true);
+        if (is_null($gameInfo)) {
+            throw new \Exception(sprintf('It is not possible to get data from file: %s', $filePath));
+        }
+
+        return $gameInfo;
+    }
+
+    /**
+     * @param $filePath
      * @param Game $game
      */
-    private function savePage($fileName, Game $game)
+    private function savePage($filePath, Game $game)
     {
-        ob_start();
-        // template used Game object
-        require_once "templates/game.php";
-        $content = ob_get_contents();
-        ob_clean();
-
-        $nameParts = explode(".", $fileName);
-        $newFile = fopen($this->resultPath . "/{$nameParts[0]}.html", "w");
+        $content = $this->getGameContent($game);
+        $newFile = fopen($this->resultPath . "{$this->getFileName($filePath)}.html", "w");
         fwrite($newFile, $content);
         fclose($newFile);
     }
 
     /**
-     * @param $obj
+     * @param Game $game
+     * @return string
+     */
+    private function getGameContent(Game $game)
+    {
+        ob_start();
+        // template used Game object
+        require_once "Templates/game.php";
+        $content = ob_get_contents();
+        ob_end_clean();
+
+        return $content;
+    }
+
+    /**
+     * @param $filePath
+     * @return string
+     */
+    private function getFileName($filePath)
+    {
+        $nameParts = explode(DIRECTORY_SEPARATOR, $filePath);
+        $fileName = $nameParts[count($nameParts) - 1];
+        return substr($fileName, 0, count($fileName) - 6);
+    }
+
+    /**
+     * @param array $gameData
      * @return Game|null
      */
-    private function createGame($obj)
+    private function createGame(array $gameData)
     {
         $game = null;
-        foreach ($obj as $o) {
-            if ($o->type === "startPeriod" && !empty($o->details)) {
-                $gameLocation = $o->details->stadium;
+        foreach ($gameData as $data) {
+            if ($data['type'] === "startPeriod" && !empty($data['details'])) {
+                $gameLocation = $data['details']['stadium'];
 
                 // json bug - county not country
                 $game = new Game(
-                    $gameLocation->county,
-                    $gameLocation->city,
-                    $gameLocation->stadium,
-                    $this->addTeams($o->details)
+                    $gameLocation['county'],
+                    $gameLocation['city'],
+                    $gameLocation['stadium'],
+                    $this->addTeams($data['details'])
                 );
             }
         }
@@ -99,19 +127,19 @@ class PageGenerator
     }
 
     /**
-     * @param $data
+     * @param array $teamData
      * @return array
      */
-    private function addTeams($data)
+    private function addTeams(array $teamData)
     {
         $teams = [];
         for ($i = 1; $i <= 2; $i++) {
-            $team = $data->{"team" . $i};
-            $teams[$team->title] = new Team(
-                $team->title,
-                $team->coach,
-                $team->country,
-                $this->addPlayers($team->players, $team->startPlayerNumbers)
+            $team = $teamData['team' . $i];
+            $teams[$team['title']] = new Team(
+                $team['title'],
+                $team['coach'],
+                $team['country'],
+                $this->addPlayers($team['players'], $team['startPlayerNumbers'])
             );
         }
 
@@ -127,8 +155,8 @@ class PageGenerator
     {
         $data = [];
         foreach ($players as $player) {
-            $isStarted = in_array($player->number, $startPlayerNumbers);
-            $data[$player->number] = new Player($player->number, $player->name, $isStarted);
+            $isStarted = in_array($player['number'], $startPlayerNumbers);
+            $data[$player['number']] = new Player($player['number'], $player['name'], $isStarted);
         }
 
         return $data;
@@ -136,33 +164,33 @@ class PageGenerator
 
     /**
      * @param Game $game
-     * @param $obj
+     * @param array $gameData
      */
-    private function addInfo(Game $game, $obj)
+    private function addInfo(Game $game, array $gameData)
     {
         $info = [];
-        foreach ($obj as $o) {
-            $info[] = new Info($o->time, $o->description, $o->type);
-            switch ($o->type) {
+        foreach ($gameData as $data) {
+            $info[] = new Info($data['time'], $data['description'], $data['type']);
+            switch ($data['type']) {
                 case "yellowCard":
-                    $this->addCard($game, $o->details, $o->time, self::YELLOW_CARD);
+                    $this->addCard($game, $data['details'], $data['time'], self::YELLOW_CARD);
                     break;
                 case "redCard":
-                    $this->addCard($game, $o->details, $o->time, self::RED_CARD);
+                    $this->addCard($game, $data['details'], $data['time'], self::RED_CARD);
                     break;
                 case "goal":
-                    $this->addGoal($game, $o->details);
-                    $this->addAssist($game, $o->details);
+                    $this->addGoal($game, $data['details']);
+                    $this->addAssist($game, $data['details']);
                     break;
                 case "replacePlayer":
-                    $this->addReplacement($game, $o->details, $o->time);
+                    $this->addReplacement($game, $data['details'], $data['time']);
                     break;
                 default:
                     break;
             }
 
-            if ($o->type === "finishPeriod" && $o->time >= 90) {
-                $this->addEndPeriod($game, $o->time);
+            if ($data['type'] === "finishPeriod" && $data['time'] >= 90) {
+                $this->addEndPeriod($game, $data['time']);
             }
         }
 
@@ -191,13 +219,13 @@ class PageGenerator
     private function addCard(Game $game, $data, $time, $type)
     {
         if ($type === self::YELLOW_CARD) {
-            $game->teams[$data->team]->players[$data->playerNumber]->increaseYellowCards();
-            if ($game->teams[$data->team]->players[$data->playerNumber] === 2) {
-                $game->teams[$data->team]->players[$data->playerNumber]->setEndTime($time);
+            $game->teams[$data['team']]->players[$data['playerNumber']]->increaseYellowCards();
+            if ($game->teams[$data['team']]->players[$data['playerNumber']] === 2) {
+                $game->teams[$data['team']]->players[$data['playerNumber']]->setEndTime($time);
             }
         } else if ($type === self::RED_CARD) {
-            $game->teams[$data->team]->players[$data->playerNumber]->setRedCard();
-            $game->teams[$data->team]->players[$data->playerNumber]->setEndTime($time);
+            $game->teams[$data['team']]->players[$data['playerNumber']]->setRedCard();
+            $game->teams[$data['team']]->players[$data['playerNumber']]->setEndTime($time);
         }
     }
 
@@ -207,8 +235,8 @@ class PageGenerator
      */
     private function addGoal(Game $game, $data)
     {
-        $game->teams[$data->team]->increaseGoal();
-        $game->teams[$data->team]->players[$data->playerNumber]->increaseGoal();
+        $game->teams[$data['team']]->increaseGoal();
+        $game->teams[$data['team']]->players[$data['playerNumber']]->increaseGoal();
 
     }
 
@@ -218,8 +246,8 @@ class PageGenerator
      */
     private function addAssist(Game $game, $data)
     {
-        if ($data->assistantNumber !== null) {
-            $game->teams[$data->team]->players[$data->playerNumber]->increaseAssists();
+        if ($data['assistantNumber'] !== null) {
+            $game->teams[$data['team']]->players[$data['playerNumber']]->increaseAssists();
         }
     }
 
@@ -230,10 +258,10 @@ class PageGenerator
      */
     private function addReplacement(Game $game, $data, $time)
     {
-        $playerOut = $game->teams[$data->team]->players[$data->outPlayerNumber];
-        $playerIn = $game->teams[$data->team]->players[$data->inPlayerNumber];
+        $playerOut = $game->teams[$data['team']]->players[$data['outPlayerNumber']];
+        $playerIn = $game->teams[$data['team']]->players[$data['inPlayerNumber']];
         $playerOut->setReplacement(self::PLAYER_OUT, $time);
         $playerIn->setReplacement(self::PLAYER_IN, $time);
-        $game->teams[$data->team]->setReplacement($playerOut, $playerIn, $time);
+        $game->teams[$data['team']]->setReplacement($playerOut, $playerIn, $time);
     }
 }
