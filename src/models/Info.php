@@ -1,5 +1,7 @@
 <?php
 
+namespace Roxot\Models;
+
 class Info
 {
     /**

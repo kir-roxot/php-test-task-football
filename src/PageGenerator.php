@@ -1,13 +1,34 @@
 <?php
 
+namespace Roxot;
+
+use Roxot\Models\Game;
+use Roxot\Models\Team;
+use Roxot\Models\Player;
+use Roxot\Models\Info;
+
 class PageGenerator
 {
+    const YELLOW_CARD = "yellow_card";
+    const RED_CARD = "red_card";
+    const PLAYER_IN = "player_in";
+    const PLAYER_OUT = "player_out";
+
+    private $scanPath;
+    private $resultPath;
+
+    public function __construct($scanPath, $resultPath)
+    {
+        $this->scanPath = $scanPath;
+        $this->resultPath = $resultPath;
+    }
+
     public function generate()
     {
         $filesNames = $this->scan();
 
         foreach ($filesNames as $fileName) {
-            $file = file_get_contents(SCAN_PATH . "/" . $fileName);
+            $file = file_get_contents($this->scanPath . "/" . $fileName);
             $obj = json_decode($file);
 
             $game = $this->createGame($obj);
@@ -22,11 +43,11 @@ class PageGenerator
 
     /**
      * @return array $filesNames
-     * @throws Exception
+     * @throws \Exception
      */
     private function scan()
     {
-        $filesNames = scandir(SCAN_PATH);
+        $filesNames = scandir($this->scanPath);
         $filesNames = array_diff($filesNames, array(".", ".."));
         if (!count($filesNames)) {
             throw new \Exception("Files not found.");
@@ -48,7 +69,7 @@ class PageGenerator
         ob_clean();
 
         $nameParts = explode(".", $fileName);
-        $newFile = fopen(RESULT_PATH . "/{$nameParts[0]}.html", "w");
+        $newFile = fopen($this->resultPath . "/{$nameParts[0]}.html", "w");
         fwrite($newFile, $content);
         fclose($newFile);
     }
@@ -124,10 +145,10 @@ class PageGenerator
             $info[] = new Info($o->time, $o->description, $o->type);
             switch ($o->type) {
                 case "yellowCard":
-                    $this->addCard($game, $o->details, $o->time, YELLOW_CARD);
+                    $this->addCard($game, $o->details, $o->time, self::YELLOW_CARD);
                     break;
                 case "redCard":
-                    $this->addCard($game, $o->details, $o->time, RED_CARD);
+                    $this->addCard($game, $o->details, $o->time, self::RED_CARD);
                     break;
                 case "goal":
                     $this->addGoal($game, $o->details);
@@ -169,12 +190,12 @@ class PageGenerator
      */
     private function addCard(Game $game, $data, $time, $type)
     {
-        if ($type === YELLOW_CARD) {
+        if ($type === self::YELLOW_CARD) {
             $game->teams[$data->team]->players[$data->playerNumber]->increaseYellowCards();
             if ($game->teams[$data->team]->players[$data->playerNumber] === 2) {
                 $game->teams[$data->team]->players[$data->playerNumber]->setEndTime($time);
             }
-        } else if ($type === RED_CARD) {
+        } else if ($type === self::RED_CARD) {
             $game->teams[$data->team]->players[$data->playerNumber]->setRedCard();
             $game->teams[$data->team]->players[$data->playerNumber]->setEndTime($time);
         }
@@ -211,8 +232,8 @@ class PageGenerator
     {
         $playerOut = $game->teams[$data->team]->players[$data->outPlayerNumber];
         $playerIn = $game->teams[$data->team]->players[$data->inPlayerNumber];
-        $playerOut->setReplacement(PLAYER_OUT, $time);
-        $playerIn->setReplacement(PLAYER_IN, $time);
+        $playerOut->setReplacement(self::PLAYER_OUT, $time);
+        $playerIn->setReplacement(self::PLAYER_IN, $time);
         $game->teams[$data->team]->setReplacement($playerOut, $playerIn, $time);
     }
 }

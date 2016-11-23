@@ -1,7 +1,12 @@
 <?php
 
+namespace Roxot\Models;
+
 class Player
 {
+    const PLAYER_IN = "player_in";
+    const PLAYER_OUT = "player_out";
+
     /**
      * @var int $number
      */
@@ -101,9 +106,9 @@ class Player
 
     public function setReplacement($type, $time)
     {
-        if ($type === PLAYER_IN) {
+        if ($type === self::PLAYER_IN) {
             $this->startTime = $time;
-        } else if ($type === PLAYER_OUT) {
+        } else if ($type === self::PLAYER_OUT) {
             $this->endTime = $time;
         }
     }

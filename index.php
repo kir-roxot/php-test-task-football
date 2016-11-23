@@ -1,9 +1,10 @@
 <?php
 
-require_once "config.php";
-require_once "src/autoload.php";
+require __DIR__ . '/vendor/autoload.php';
 
-$generator = new PageGenerator();
+use Roxot\PageGenerator;
+
+$generator = new PageGenerator("source/matches", "result");
 $generator->generate();
 
 return 0;
