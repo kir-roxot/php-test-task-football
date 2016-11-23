@@ -1,0 +1,15 @@
+{
+    "name": "evgeny/php-test-task-football",
+    "authors": [
+        {
+            "name": "enybor",
+            "email": "evgeny@roxot.com"
+        }
+    ],
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "Roxot\\": "src/"
+        }
+    }
+}
