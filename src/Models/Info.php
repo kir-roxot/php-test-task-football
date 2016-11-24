@@ -25,7 +25,7 @@ class Info
      * @param $description
      * @param $type
      */
-    public function __construct($time, $description, $type)
+    public function __construct(int $time, string $description, string $type)
     {
         $this->time = $time;
         $this->description = $description;

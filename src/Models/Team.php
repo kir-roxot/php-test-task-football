@@ -34,14 +34,7 @@ class Team
      */
     public $replacements;
 
-    /**
-     * Team constructor.
-     * @param $title
-     * @param $coach
-     * @param $country
-     * @param array $players
-     */
-    public function __construct($title, $coach, $country, array $players)
+    public function __construct(string $title, string $coach, string $country, array $players)
     {
         $this->title = $title;
         $this->coach = $coach;
@@ -55,11 +48,11 @@ class Team
     }
 
     /**
-     * @param $playerOut
-     * @param $playerIn
-     * @param $time
+     * @param Player $playerOut
+     * @param Player $playerIn
+     * @param int $time
      */
-    public function setReplacement($playerOut, $playerIn, $time)
+    public function setReplacement(Player $playerOut, Player $playerIn, int $time)
     {
         $this->replacements[] = ["out" => $playerOut, "in" => $playerIn, 'time' => $time];
     }

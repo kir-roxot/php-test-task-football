@@ -4,8 +4,8 @@ namespace Roxot\Models;
 
 class Player
 {
-    const PLAYER_IN = "player_in";
-    const PLAYER_OUT = "player_out";
+    const PLAYER_IN_MODE = "player_in_mode";
+    const PLAYER_OUT_MODE = "player_out_mode";
 
     /**
      * @var int $number
@@ -52,13 +52,7 @@ class Player
      */
     public $isStarted = false;
 
-    /**
-     * Player constructor.
-     * @param $number
-     * @param $name
-     * @param $isStarted
-     */
-    public function __construct($number, $name, $isStarted)
+    public function __construct(int $number, string $name, bool $isStarted)
     {
         $this->number = $number;
         $this->name = $name;
@@ -73,7 +67,7 @@ class Player
     /**
      * @param int $endTime
      */
-    public function setEndTime($endTime)
+    public function setEndTime(int $endTime)
     {
         if ($this->startTime === 0 && $this->endTime === 0 && $this->isStarted || $this->startTime > 0) {
             $this->endTime = $endTime;
@@ -104,11 +98,15 @@ class Player
         $this->assists++;
     }
 
-    public function setReplacement($type, $time)
+    /**
+     * @param string $type
+     * @param int $time
+     */
+    public function setReplacement(string $type, int $time)
     {
-        if ($type === self::PLAYER_IN) {
+        if ($type === self::PLAYER_IN_MODE) {
             $this->startTime = $time;
-        } else if ($type === self::PLAYER_OUT) {
+        } else if ($type === self::PLAYER_OUT_MODE) {
             $this->endTime = $time;
         }
     }
