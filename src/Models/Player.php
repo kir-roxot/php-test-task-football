@@ -83,9 +83,13 @@ class Player
         $this->yellowCards++;
     }
 
-    public function setRedCard()
+    public function increaseRedCard()
     {
-        $this->redCards = 1;
+        if ($this->redCards === 1) {
+            return;
+        }
+
+        $this->redCards++;
     }
 
     public function increaseGoal()
@@ -99,15 +103,18 @@ class Player
     }
 
     /**
-     * @param string $type
+    * @param int $time
+    */
+    public function setReplacementIn(int $time)
+    {
+        $this->startTime = $time;
+    }
+
+    /**
      * @param int $time
      */
-    public function setReplacement(string $type, int $time)
+    public function setReplacementOut(int $time)
     {
-        if ($type === self::PLAYER_IN_MODE) {
-            $this->startTime = $time;
-        } else if ($type === self::PLAYER_OUT_MODE) {
-            $this->endTime = $time;
-        }
+        $this->endTime = $time;
     }
 }

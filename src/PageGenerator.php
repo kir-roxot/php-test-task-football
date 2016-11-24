@@ -9,9 +9,6 @@ use Roxot\Models\Info;
 
 class PageGenerator
 {
-    const YELLOW_CARD_MODE = "yellow_card_mode";
-    const RED_CARD_MODE = "red_card_mode";
-
     private $scanPath;
     private $resultPath;
 
@@ -26,8 +23,7 @@ class PageGenerator
 
         foreach ($filesPaths as $filePath) {
             $gameData = $this->getGameInfoByFile($filePath);
-            $game = $this->createGame($gameData);
-            $this->addInfo($game, $gameData);
+            $game = $this->buildGame($gameData);
             $this->savePage($filePath, $game);
         }
     }
@@ -63,6 +59,48 @@ class PageGenerator
     }
 
     /**
+     * @param array $gameData
+     * @return Game
+     */
+    private function buildGame(array $gameData)
+    {
+        $startInfoEvent = $this->getStartInfo($gameData);
+        $gameLocation = $startInfoEvent['details']['stadium'];
+        // todo json bug - county not country
+        $game = new Game(
+            $gameLocation['county'],
+            $gameLocation['city'],
+            $gameLocation['stadium'],
+            $this->addTeams($startInfoEvent['details'])
+        );
+
+        $this->addInfo($game, $gameData);
+
+        return $game;
+    }
+
+    /**
+     * @param array $gameData
+     * @return array
+     * @throws \Exception
+     */
+    private function getStartInfo(array $gameData)
+    {
+        foreach ($gameData as $data) {
+            if ($data['type'] !== "startPeriod") {
+                continue;
+            }
+            if (empty($data['details'])) {
+                continue;
+            }
+
+            return $data;
+        }
+
+        throw new \Exception('error');
+    }
+
+    /**
      * @param string $filePath
      * @param Game $game
      */
@@ -72,56 +110,6 @@ class PageGenerator
         $newFile = fopen($this->resultPath . "{$this->getFileName($filePath)}.html", "w");
         fwrite($newFile, $content);
         fclose($newFile);
-    }
-
-    /**
-     * @param Game $game
-     * @return string
-     */
-    private function getGameContent(Game $game)
-    {
-        ob_start();
-        // template used Game object
-        require_once "Templates/game.php";
-        $content = ob_get_contents();
-        ob_end_clean();
-
-        return $content;
-    }
-
-    /**
-     * @param string $filePath
-     * @return string
-     */
-    private function getFileName(string $filePath)
-    {
-        $nameParts = explode(DIRECTORY_SEPARATOR, $filePath);
-        $fileName = $nameParts[count($nameParts) - 1];
-        return substr($fileName, 0, count($fileName) - 6);
-    }
-
-    /**
-     * @param array $gameData
-     * @return Game|null
-     */
-    private function createGame(array $gameData)
-    {
-        $game = null;
-        foreach ($gameData as $data) {
-            if ($data['type'] === "startPeriod" && !empty($data['details'])) {
-                $gameLocation = $data['details']['stadium'];
-
-                // json bug - county not country
-                $game = new Game(
-                    $gameLocation['county'],
-                    $gameLocation['city'],
-                    $gameLocation['stadium'],
-                    $this->addTeams($data['details'])
-                );
-            }
-        }
-
-        return $game;
     }
 
     /**
@@ -171,25 +159,32 @@ class PageGenerator
             $info[] = new Info($data['time'], $data['description'], $data['type']);
             switch ($data['type']) {
                 case "yellowCard":
-                    $this->addCard($game, $data['details'], $data['time'], self::YELLOW_CARD_MODE);
+                    $this->addYellowCard($game, $data['details'], $data['time']);
                     break;
                 case "redCard":
-                    $this->addCard($game, $data['details'], $data['time'], self::RED_CARD_MODE);
+                    $this->addRedCard($game, $data['details'], $data['time']);
                     break;
                 case "goal":
                     $this->addGoal($game, $data['details']);
                     $this->addAssist($game, $data['details']);
                     break;
                 case "replacePlayer":
-                    $this->addReplacement($game, $data['details'], $data['time']);
+                    $playerIn = $this->replacePlayerIn($game, $data['details'], $data['time']);
+                    $playerOut = $this->replacePlayerOut($game, $data['details'], $data['time']);
+                    $game->teams[$data['details']['team']]->setReplacement($playerOut, $playerIn, $data['time']);
                     break;
                 default:
                     break;
             }
 
-            if ($data['type'] === "finishPeriod" && $data['time'] >= 90) {
-                $this->addEndPeriod($game, $data['time']);
+            if ($data['type'] !== "finishPeriod") {
+                continue;
             }
+            if ($data['time'] < 90) {
+                continue;
+            }
+
+            $this->addEndPeriod($game, $data['time']);
         }
 
         $game->info = $info;
@@ -197,14 +192,14 @@ class PageGenerator
 
     /**
      * @param Game $game
-     * @param $time
+     * @param array $data
+     * @param int $time
      */
-    private function addEndPeriod(Game $game, int $time)
+    private function addYellowCard(Game $game, array $data, int $time)
     {
-        foreach ($game->teams as $team) {
-            foreach ($team->players as $player) {
-                $player->setEndTime($time);
-            }
+        $game->teams[$data['team']]->players[$data['playerNumber']]->increaseYellowCards();
+        if ($game->teams[$data['team']]->players[$data['playerNumber']]->yellowCards === 2) {
+            $game->teams[$data['team']]->players[$data['playerNumber']]->setEndTime($time);
         }
     }
 
@@ -212,19 +207,11 @@ class PageGenerator
      * @param Game $game
      * @param array $data
      * @param int $time
-     * @param string $type
      */
-    private function addCard(Game $game, array $data, int $time, string $type)
+    private function addRedCard(Game $game, array $data, int $time)
     {
-        if ($type === self::YELLOW_CARD_MODE) {
-            $game->teams[$data['team']]->players[$data['playerNumber']]->increaseYellowCards();
-            if ($game->teams[$data['team']]->players[$data['playerNumber']] === 2) {
-                $game->teams[$data['team']]->players[$data['playerNumber']]->setEndTime($time);
-            }
-        } else if ($type === self::RED_CARD_MODE) {
-            $game->teams[$data['team']]->players[$data['playerNumber']]->setRedCard();
-            $game->teams[$data['team']]->players[$data['playerNumber']]->setEndTime($time);
-        }
+        $game->teams[$data['team']]->players[$data['playerNumber']]->increaseRedCard();
+        $game->teams[$data['team']]->players[$data['playerNumber']]->setEndTime($time);
     }
 
     /**
@@ -253,13 +240,66 @@ class PageGenerator
      * @param Game $game
      * @param array $data
      * @param int $time
+     * @return Player
      */
-    private function addReplacement(Game $game, array $data, int $time)
+    private function replacePlayerIn(Game $game, array $data, int $time)
     {
-        $playerOut = $game->teams[$data['team']]->players[$data['outPlayerNumber']];
-        $playerIn = $game->teams[$data['team']]->players[$data['inPlayerNumber']];
-        $playerOut->setReplacement(Player::PLAYER_OUT_MODE, $time);
-        $playerIn->setReplacement(Player::PLAYER_IN_MODE, $time);
-        $game->teams[$data['team']]->setReplacement($playerOut, $playerIn, $time);
+        $player = $game->teams[$data['team']]->players[$data['inPlayerNumber']];
+        $player->setReplacementIn($time);
+
+        return $player;
+    }
+
+    /**
+     * @param Game $game
+     * @param array $data
+     * @param int $time
+     * @return Player
+     */
+    private function replacePlayerOut(Game $game, array $data, int $time)
+    {
+        $player = $game->teams[$data['team']]->players[$data['outPlayerNumber']];
+        $player->setReplacementOut($time);
+
+        return $player;
+    }
+
+    /**
+     * @param Game $game
+     * @param $time
+     */
+    private function addEndPeriod(Game $game, int $time)
+    {
+        foreach ($game->teams as $team) {
+            foreach ($team->players as $player) {
+                $player->setEndTime($time);
+            }
+        }
+    }
+
+    /**
+     * @param Game $game
+     * @return string
+     */
+    private function getGameContent(Game $game)
+    {
+        ob_start();
+        // template used Game object
+        require_once "Templates/game.php";
+        $content = ob_get_contents();
+        ob_end_clean();
+
+        return $content;
+    }
+
+    /**
+     * @param string $filePath
+     * @return string
+     */
+    private function getFileName(string $filePath)
+    {
+        $nameParts = explode(DIRECTORY_SEPARATOR, $filePath);
+        $fileName = $nameParts[count($nameParts) - 1];
+        return substr($fileName, 0, count($fileName) - 6);
     }
 }
