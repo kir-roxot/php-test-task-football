@@ -2,10 +2,10 @@
 
 namespace Roxot;
 
+use Roxot\Factories\InfoFactory;
 use Roxot\Models\Game;
-use Roxot\Models\Team;
 use Roxot\Models\Player;
-use Roxot\Models\Info;
+use Roxot\Factories\GameFactory;
 
 class PageGenerator
 {
@@ -64,40 +64,10 @@ class PageGenerator
      */
     private function buildGame(array $gameData)
     {
-        $startInfoEvent = $this->getStartInfo($gameData);
-        $gameLocation = $startInfoEvent['details']['stadium'];
-        // todo json bug - county not country
-        $game = new Game(
-            $gameLocation['county'],
-            $gameLocation['city'],
-            $gameLocation['stadium'],
-            $this->addTeams($startInfoEvent['details'])
-        );
-
+        $game = (new GameFactory)->createGame($gameData);
         $this->addInfo($game, $gameData);
 
         return $game;
-    }
-
-    /**
-     * @param array $gameData
-     * @return array
-     * @throws \Exception
-     */
-    private function getStartInfo(array $gameData)
-    {
-        foreach ($gameData as $data) {
-            if ($data['type'] !== "startPeriod") {
-                continue;
-            }
-            if (empty($data['details'])) {
-                continue;
-            }
-
-            return $data;
-        }
-
-        throw new \Exception('error');
     }
 
     /**
@@ -113,42 +83,6 @@ class PageGenerator
     }
 
     /**
-     * @param array $teamData
-     * @return array
-     */
-    private function addTeams(array $teamData)
-    {
-        $teams = [];
-        for ($i = 1; $i <= 2; $i++) {
-            $team = $teamData['team' . $i];
-            $teams[$team['title']] = new Team(
-                $team['title'],
-                $team['coach'],
-                $team['country'],
-                $this->addPlayers($team['players'], $team['startPlayerNumbers'])
-            );
-        }
-
-        return $teams;
-    }
-
-    /**
-     * @param Player[] $players
-     * @param array $startPlayerNumbers
-     * @return array
-     */
-    private function addPlayers(array $players, array $startPlayerNumbers)
-    {
-        $data = [];
-        foreach ($players as $player) {
-            $isStarted = in_array($player['number'], $startPlayerNumbers);
-            $data[$player['number']] = new Player($player['number'], $player['name'], $isStarted);
-        }
-
-        return $data;
-    }
-
-    /**
      * @param Game $game
      * @param array $gameData
      */
@@ -156,7 +90,7 @@ class PageGenerator
     {
         $info = [];
         foreach ($gameData as $data) {
-            $info[] = new Info($data['time'], $data['description'], $data['type']);
+            $info[] = (new InfoFactory())->createInfo($data);
             switch ($data['type']) {
                 case "yellowCard":
                     $this->addYellowCard($game, $data['details'], $data['time']);
