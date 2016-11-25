@@ -9,6 +9,11 @@ class PlayerFactory
     const NUMBER = 'number';
     const NAME = 'name';
 
+    /**
+     * @param array $data
+     * @param array $startPlayerNumbers
+     * @return Player
+     */
     public function createPlayer(array $data, array $startPlayerNumbers)
     {
         $this->validate($data);
@@ -17,6 +22,10 @@ class PlayerFactory
         return new Player($data['number'], $data['name'], $isStarted);
     }
 
+    /**
+     * @param array $data
+     * @throws \Exception
+     */
     private function validate(array $data)
     {
         $keys = [self::NUMBER, self::NAME];

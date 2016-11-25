@@ -2,11 +2,10 @@
 
 namespace Roxot;
 
-use Roxot\Factories\InfoFactory;
 use Roxot\Models\Game;
-use Roxot\Models\Player;
 use Roxot\Factories\GameFactory;
 use Roxot\Services\GameInfoService;
+use Roxot\Services\NormalizerService;
 
 class PageGenerator
 {
@@ -24,6 +23,7 @@ class PageGenerator
 
         foreach ($filesPaths as $filePath) {
             $gameData = $this->getGameInfoByFile($filePath);
+            (new NormalizerService)->normalize($gameData);
             $game = $this->buildGame($gameData);
             $this->savePage($filePath, $game);
         }

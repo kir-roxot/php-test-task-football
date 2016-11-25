@@ -11,6 +11,10 @@ class TeamFactory
     const COACH = 'coach';
     const COUNTRY = 'country';
 
+    /**
+     * @param array $data
+     * @return Team
+     */
     public function createTeam(array $data)
     {
         $this->validate($data);
@@ -22,6 +26,10 @@ class TeamFactory
         );
     }
 
+    /**
+     * @param array $data
+     * @throws \Exception
+     */
     private function validate(array $data)
     {
         $keys = [self::TITLE, self::COACH, self::COUNTRY];

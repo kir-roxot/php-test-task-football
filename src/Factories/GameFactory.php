@@ -11,6 +11,10 @@ class GameFactory
     const CITY = 'city';
     const STADIUM = 'stadium';
 
+    /**
+     * @param array $data
+     * @return Game
+     */
     public function createGame(array $data)
     {
         $startInfo = $this->getStartInfo($data);

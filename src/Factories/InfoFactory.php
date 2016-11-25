@@ -10,12 +10,20 @@ class InfoFactory
     const DESCRIPTION = 'description';
     const TYPE = 'type';
 
+    /**
+     * @param array $data
+     * @return Info
+     */
     public function createInfo(array $data)
     {
         $this->validate($data);
         return new Info($data['time'], $data['description'], $data['type']);
     }
 
+    /**
+     * @param array $data
+     * @throws \Exception
+     */
     private function validate(array $data)
     {
         $keys = [self::TIME, self::DESCRIPTION, self::TYPE];
