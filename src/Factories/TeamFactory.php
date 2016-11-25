@@ -4,13 +4,10 @@ namespace Roxot\Factories;
 
 use Roxot\Models\Team;
 use Roxot\Models\Player;
+use Roxot\Services\ValidatorService;
 
 class TeamFactory
 {
-    const TITLE = 'title';
-    const COACH = 'coach';
-    const COUNTRY = 'country';
-
     /**
      * @param array $data
      * @return Team
@@ -32,16 +29,7 @@ class TeamFactory
      */
     private function validate(array $data)
     {
-        $keys = [self::TITLE, self::COACH, self::COUNTRY];
-        foreach ($keys as $key) {
-            if (!array_key_exists($key, $data)) {
-                throw new \Exception(
-                    sprintf(
-                        'Key "%s" not found in team data: "%s"',
-                        $key,
-                        implode(", ", array_keys($data))));
-            }
-        }
+        ValidatorService::validateTeam($data);
     }
 
     /**

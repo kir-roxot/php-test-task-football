@@ -3,29 +3,25 @@
 namespace Roxot\Factories;
 
 use Roxot\Models\Game;
+use Roxot\Services\ValidatorService;
 
 class GameFactory
 {
-    // todo county not country
-    const COUNTRY = 'county';
-    const CITY = 'city';
-    const STADIUM = 'stadium';
-
     /**
      * @param array $data
      * @return Game
      */
     public function createGame(array $data)
     {
-        $startInfo = $this->getStartInfo($data);
-        $gameLocation = $startInfo['details']['stadium'];
+        $startInfo = $data['startInfoEvent'];
+        $gameLocation = $startInfo['stadium'];
         $this->validate($gameLocation);
         // todo json bug - county not country
         return new Game(
             $gameLocation['county'],
             $gameLocation['city'],
             $gameLocation['stadium'],
-            $this->addTeams($startInfo['details'])
+            $this->addTeams($startInfo)
         );
     }
 
@@ -35,37 +31,7 @@ class GameFactory
      */
     private function validate(array $data)
     {
-        $keys = [self::COUNTRY, self::CITY, self::STADIUM];
-        foreach ($keys as $key) {
-            if (!array_key_exists($key, $data)) {
-                throw new \Exception(
-                    sprintf(
-                        'Key "%s" not found in game data: "%s"',
-                        $key,
-                        implode(", ", array_keys($data))));
-            }
-        }
-    }
-
-    /**
-     * @param array $gameData
-     * @return array
-     * @throws \Exception
-     */
-    private function getStartInfo(array $gameData)
-    {
-        foreach ($gameData as $data) {
-            if ($data['type'] !== "startPeriod") {
-                continue;
-            }
-            if (empty($data['details'])) {
-                continue;
-            }
-
-            return $data;
-        }
-
-        throw new \Exception('Start game information is empty');
+        ValidatorService::validateGame($data);
     }
 
     /**

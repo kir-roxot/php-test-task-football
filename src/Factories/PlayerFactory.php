@@ -3,12 +3,10 @@
 namespace Roxot\Factories;
 
 use Roxot\Models\Player;
+use Roxot\Services\ValidatorService;
 
 class PlayerFactory
 {
-    const NUMBER = 'number';
-    const NAME = 'name';
-
     /**
      * @param array $data
      * @param array $startPlayerNumbers
@@ -28,15 +26,6 @@ class PlayerFactory
      */
     private function validate(array $data)
     {
-        $keys = [self::NUMBER, self::NAME];
-        foreach ($keys as $key) {
-            if (!array_key_exists($key, $data)) {
-                throw new \Exception(
-                    sprintf(
-                        'Key "%s" not found in team data: "%2s"',
-                        $key,
-                        implode(", ", array_keys($data))));
-            }
-        }
+        ValidatorService::validatePlayer($data);
     }
 }

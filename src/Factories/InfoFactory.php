@@ -3,13 +3,10 @@
 namespace Roxot\Factories;
 
 use Roxot\Models\Info;
+use Roxot\Services\ValidatorService;
 
 class InfoFactory
 {
-    const TIME = 'time';
-    const DESCRIPTION = 'description';
-    const TYPE = 'type';
-
     /**
      * @param array $data
      * @return Info
@@ -26,15 +23,6 @@ class InfoFactory
      */
     private function validate(array $data)
     {
-        $keys = [self::TIME, self::DESCRIPTION, self::TYPE];
-        foreach ($keys as $key) {
-            if (!array_key_exists($key, $data)) {
-                throw new \Exception(
-                    sprintf(
-                        'Key "%s" not found in info data: "%s"',
-                        $key,
-                        implode(", ", array_keys($data))));
-            }
-        }
+        ValidatorService::validateInfo($data);
     }
 }

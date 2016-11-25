@@ -13,31 +13,40 @@ class NormalizerService
 
     public function normalize(array $gameData)
     {
-        $newData = [];
+        $normalizedData = [
+            'startInfoEvent' => [],
+            'infoEvent' => [],
+            'periodEvent' => [],
+            'goalEvent' => [],
+            'yellowCardEvent' => [],
+            'redCardEvent' => [],
+            'replacementEvent' => []
+        ];
+
         $startPeriod = null;
         foreach ($gameData as $data) {
-            $newData['infoEvent'][] = $this->getInfoEvent($data);
+            $this->validateKeys($data);
+            $normalizedData['infoEvent'][] = $this->getInfoEvent($data);
             if ($data['type'] === self::START_PERIOD) {
                 $startPeriod = $this->getStartPeriod($data);
             }
             if ($data['type'] === self::END_PERIOD) {
                 $endPeriod = $this->getEndPeriod($data);
-                $newData['periodEvent'][] = [$startPeriod, $endPeriod];
+                $normalizedData['periodEvent'][] = [$startPeriod, $endPeriod];
                 $startPeriod = null;
             }
             if ($data['type'] === self::GOAL) {
-                $newData['goalEvent'][] = $this->getGoalEvent($data);
+                $normalizedData['goalEvent'][] = $this->getGoalEvent($data);
             }
             if ($data['type'] === self::YELLOW_CARD) {
-                $newData['yellowCardEvent'][] = $this->getYellowCardEvent($data);
+                $normalizedData['yellowCardEvent'][] = $this->getYellowCardEvent($data);
             }
             if ($data['type'] === self::RED_CARD) {
-                $newData['redCardEvent'][] = $this->getRedCardEvent($data);
+                $normalizedData['redCardEvent'][] = $this->getRedCardEvent($data);
             }
             if ($data['type'] === self::REPLACEMENT) {
-                $newData['replacementEvent'][] = $this->getReplacementEvent($data);
+                $normalizedData['replacementEvent'][] = $this->getReplacementEvent($data);
             }
-
 
             if ($data['type'] !== self::START_PERIOD) {
                 continue;
@@ -46,16 +55,16 @@ class NormalizerService
                 continue;
             }
 
-            $newData['startInfoEvent'] = $data['details'];
+            $normalizedData['startInfoEvent'] = $data['details'];
 
         }
 
-        var_dump($newData['startInfoEvent']);
+        return $normalizedData;
     }
 
-    private function validate(array $data)
+    private function validateKeys(array $data)
     {
-
+        ValidatorService::validateData($data);
     }
 
     /**
@@ -76,9 +85,11 @@ class NormalizerService
     private function getGoalEvent(array $data)
     {
         $data = array_merge($data, $data['details']);
-        unset($data['type']);
-        unset($data['description']);
-        unset($data['details']);
+        unset(
+            $data['type'],
+            $data['description'],
+            $data['details']
+        );
 
         return $data;
     }
@@ -90,9 +101,11 @@ class NormalizerService
     private function getYellowCardEvent(array $data)
     {
         $data = array_merge($data, $data['details']);
-        unset($data['type']);
-        unset($data['description']);
-        unset($data['details']);
+        unset(
+            $data['type'],
+            $data['description'],
+            $data['details']
+        );
 
         return $data;
     }
@@ -104,9 +117,11 @@ class NormalizerService
     private function getRedCardEvent(array $data)
     {
         $data = array_merge($data, $data['details']);
-        unset($data['type']);
-        unset($data['description']);
-        unset($data['details']);
+        unset(
+            $data['type'],
+            $data['description'],
+            $data['details']
+        );
 
         return $data;
     }
@@ -117,8 +132,10 @@ class NormalizerService
      */
     private function getStartPeriod(array $data)
     {
-        unset($data['description']);
-        unset($data['details']);
+        unset(
+            $data['description'],
+            $data['details']
+        );
 
         return $data;
     }
@@ -129,8 +146,10 @@ class NormalizerService
      */
     private function getEndPeriod(array $data)
     {
-        unset($data['description']);
-        unset($data['details']);
+        unset(
+            $data['description'],
+            $data['details']
+        );
 
         return $data;
     }
@@ -142,9 +161,11 @@ class NormalizerService
     private function getReplacementEvent(array $data)
     {
         $data = array_merge($data, $data['details']);
-        unset($data['type']);
-        unset($data['description']);
-        unset($data['details']);
+        unset(
+            $data['type'],
+            $data['description'],
+            $data['details']
+        );
 
         return $data;
     }

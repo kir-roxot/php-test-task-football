@@ -15,37 +15,24 @@ class GameInfoService
     public function addInfo(Game $game, array $gameData)
     {
         $info = [];
-        foreach ($gameData as $data) {
+        foreach ($gameData['infoEvent'] as $data) {
             $info[] = (new InfoFactory())->createInfo($data);
-            switch ($data['type']) {
-                case "yellowCard":
-                    $this->addYellowCard($game, $data['details'], $data['time']);
-                    break;
-                case "redCard":
-                    $this->addRedCard($game, $data['details'], $data['time']);
-                    break;
-                case "goal":
-                    $this->addGoal($game, $data['details']);
-                    $this->addAssist($game, $data['details']);
-                    break;
-                case "replacePlayer":
-                    $playerIn = $this->replacePlayerIn($game, $data['details'], $data['time']);
-                    $playerOut = $this->replacePlayerOut($game, $data['details'], $data['time']);
-                    $game->teams[$data['details']['team']]->setReplacement($playerOut, $playerIn, $data['time']);
-                    break;
-                default:
-                    break;
-            }
-
-            if ($data['type'] !== "finishPeriod") {
-                continue;
-            }
-            if ($data['time'] < 90) {
-                continue;
-            }
-
-            $this->addEndPeriod($game, $data['time']);
         }
+
+        foreach ($gameData['yellowCardEvent'] as $data) {
+            $this->addYellowCard($game, $data);
+        }
+        foreach ($gameData['redCardEvent'] as $data) {
+            $this->addRedCard($game, $data);
+        }
+        foreach ($gameData['goalEvent'] as $data) {
+            $this->addGoal($game, $data);
+        }
+        foreach ($gameData['replacementEvent'] as $data) {
+            $this->addReplacement($game, $data);
+        }
+
+        $this->addEndPeriod($game, $gameData['periodEvent']);
 
         $game->info = $info;
     }
@@ -53,25 +40,23 @@ class GameInfoService
     /**
      * @param Game $game
      * @param array $data
-     * @param int $time
      */
-    private function addYellowCard(Game $game, array $data, int $time)
+    private function addYellowCard(Game $game, array $data)
     {
         $game->teams[$data['team']]->players[$data['playerNumber']]->increaseYellowCards();
         if ($game->teams[$data['team']]->players[$data['playerNumber']]->yellowCards === 2) {
-            $game->teams[$data['team']]->players[$data['playerNumber']]->setEndTime($time);
+            $game->teams[$data['team']]->players[$data['playerNumber']]->setEndTime($data['time']);
         }
     }
 
     /**
      * @param Game $game
      * @param array $data
-     * @param int $time
      */
-    private function addRedCard(Game $game, array $data, int $time)
+    private function addRedCard(Game $game, array $data)
     {
         $game->teams[$data['team']]->players[$data['playerNumber']]->increaseRedCard();
-        $game->teams[$data['team']]->players[$data['playerNumber']]->setEndTime($time);
+        $game->teams[$data['team']]->players[$data['playerNumber']]->setEndTime($data['time']);
     }
 
     /**
@@ -82,6 +67,7 @@ class GameInfoService
     {
         $game->teams[$data['team']]->increaseGoal();
         $game->teams[$data['team']]->players[$data['playerNumber']]->increaseGoal();
+        $this->addAssist($game, $data);
 
     }
 
@@ -99,13 +85,23 @@ class GameInfoService
     /**
      * @param Game $game
      * @param array $data
-     * @param int $time
+     */
+    private function addReplacement(Game $game, array $data)
+    {
+        $playerIn = $this->replacePlayerIn($game, $data);
+        $playerOut = $this->replacePlayerOut($game, $data);
+        $game->teams[$data['team']]->setReplacement($playerOut, $playerIn, $data['time']);
+    }
+
+    /**
+     * @param Game $game
+     * @param array $data
      * @return Player
      */
-    private function replacePlayerIn(Game $game, array $data, int $time)
+    private function replacePlayerIn(Game $game, array $data)
     {
         $player = $game->teams[$data['team']]->players[$data['inPlayerNumber']];
-        $player->setReplacementIn($time);
+        $player->setReplacementIn($data['time']);
 
         return $player;
     }
@@ -113,26 +109,41 @@ class GameInfoService
     /**
      * @param Game $game
      * @param array $data
-     * @param int $time
      * @return Player
      */
-    private function replacePlayerOut(Game $game, array $data, int $time)
+    private function replacePlayerOut(Game $game, array $data)
     {
         $player = $game->teams[$data['team']]->players[$data['outPlayerNumber']];
-        $player->setReplacementOut($time);
+        $player->setReplacementOut($data['time']);
 
         return $player;
     }
 
     /**
      * @param Game $game
-     * @param $time
+     * @param array $data
      */
-    private function addEndPeriod(Game $game, int $time)
+    private function addEndPeriod(Game $game, array $data)
     {
+        $endPeriod = 0;
+        foreach ($data as $period)
+        {
+            foreach ($period as $p) {
+                if ($p['type'] !== 'finishPeriod') {
+                continue;
+            }
+            if ($p['time'] < 90) {
+                continue;
+            }
+
+            $endPeriod = $p['time'];
+            break;
+            }
+        }
+
         foreach ($game->teams as $team) {
             foreach ($team->players as $player) {
-                $player->setEndTime($time);
+                $player->setEndTime($endPeriod);
             }
         }
     }

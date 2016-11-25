@@ -23,7 +23,7 @@ class PageGenerator
 
         foreach ($filesPaths as $filePath) {
             $gameData = $this->getGameInfoByFile($filePath);
-            (new NormalizerService)->normalize($gameData);
+            $gameData = (new NormalizerService)->normalize($gameData);
             $game = $this->buildGame($gameData);
             $this->savePage($filePath, $game);
         }
